@@ -2,87 +2,56 @@
 <html>
 <head>
   <title>Dyslexia Helper</title>
-  <!-- Dyslexia-friendly font -->
   <link href="https://fonts.cdnfonts.com/css/opendyslexic" rel="stylesheet">
-  <!-- Styles -->
   <style>
-    body {
-      font-family: 'OpenDyslexic', Arial;
-      background-color: #FFFFE0; /* Cream background */
-      color: #000000; /* Black text */
-      margin: 0;
-      padding: 20px;
-    }
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    button {
-      padding: 10px 20px;
-      background-color: #4CAF50; /* Green */
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    #result {
-      margin: 20px 0;
-      padding: 15px;
-      border: 1px solid #ddd;
-      min-height: 50px;
-    }
+    /* ... (keep existing styles the same) ... */
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Welcome to Dyslexia Helper! 🎉</h1>
     <p>Upload an image of text, and we'll read it aloud:</p>
-
-    <!-- File Upload -->
+    <label class="custom-upload" for="imageUpload">📤 Upload Image</label>
     <input type="file" id="imageUpload" accept="image/*">
-    <!-- Result Display -->
     <div id="result"></div>
-    <!-- Speak Button -->
     <button onclick="speakText()">Speak It</button>
   </div>
 
-  <!-- Tesseract.js (OCR) -->
   <script src="https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js"></script>
-  <!-- ResponsiveVoice (TTS) -->
   <script src="https://code.responsivevoice.org/responsivevoice.js"></script>
 
-  <!-- Combined Script -->
+  <!-- UPDATED SCRIPT WITH ERROR HANDLING -->
   <script>
-    // OCR Functionality
     const uploader = document.getElementById('imageUpload');
     const resultDiv = document.getElementById('result');
 
     uploader.addEventListener('change', async (e) => {
       const image = e.target.files[0];
+      if (!image) return;
+
       resultDiv.innerHTML = "Processing... 🕒";
-
-      // Initialize Tesseract
-      const worker = await Tesseract.createWorker();
-      await worker.loadLanguage('eng');
-      await worker.initialize('eng');
-
-      // Extract text
-      const { data: { text } } = await worker.recognize(image);
-      resultDiv.innerHTML = text || "Couldn't read text 😞";
       
-      await worker.terminate();
+      try {
+        const worker = await Tesseract.createWorker({
+          logger: (m) => console.log(m) // Add logging
+        });
+
+        try {
+          await worker.loadLanguage('eng');
+          await worker.initialize('eng');
+          const { data: { text } } = await worker.recognize(image);
+          resultDiv.innerHTML = text || "No text found 😞";
+        } finally {
+          await worker.terminate(); // Always terminate worker
+        }
+
+      } catch (error) {
+        console.error("OCR Error:", error);
+        resultDiv.innerHTML = `Error: ${error.message || "Failed to process image"}`;
+      }
     });
 
-    // TTS Functionality
-    function speakText() {
-      const text = document.getElementById('result').innerText;
-      if (text) {
-        responsiveVoice.speak(text, "US English Female", {
-          rate: 0.8, // Slow speed
-          onstart: () => { resultDiv.style.color = "green"; },
-          onend: () => { resultDiv.style.color = "black"; }
-        });
-      }
-    }
+    // ... (keep TTS function the same) ...
   </script>
 </body>
 </html>
